@@ -1,0 +1,63 @@
+name: Tullageback Media
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tullageback-media
+  cancel-in-progress: false
+
+jobs:
+  publish-media:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install atproto Pillow
+
+      - name: Run Tullageback Media
+        env:
+          SOURCE_ACCOUNT: scazmo.bsky.social
+          BSKY_USERNAME: snarlup.bsky.social
+          BSKY_SNARLUP_PASSWORD: ${{ secrets.BSKY_SNARLUP_PASSWORD }}
+          STATE_FILE: tullageback_media_state.json
+          MIN_AGE_DAYS: "14"
+          MAX_PAGES: "30"
+          MAX_POSTS: "3"
+          DRY_RUN: "false"
+        run: python tullageback_media.py
+
+      - name: Save publication history
+        if: always()
+        run: |
+          if [ -f tullageback_media_state.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email \
+              "41898282+github-actions[bot]@users.noreply.github.com"
+
+            git add tullageback_media_state.json
+
+            if ! git diff --cached --quiet; then
+              git commit -m "Update Tullageback media history"
+              git push origin "HEAD:${GITHUB_REF_NAME}"
+            else
+              echo "Geen wijzigingen in publicatiegeschiedenis."
+            fi
+          else
+            echo "Geen statusbestand aanwezig."
+          fi
