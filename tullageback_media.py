@@ -283,8 +283,8 @@ def publish_media(client, candidate):
 
         raw = download(url)
 
-        if len(raw) > 1_000_000:
-            raise ValueError("Afbeelding groter dan 1 MB.")
+        if len(raw) > 2_000_000:
+            raise ValueError("Afbeelding groter dan 2 MB.")
 
         uploaded = client.upload_blob(raw).blob
 
